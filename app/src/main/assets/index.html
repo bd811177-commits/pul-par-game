@@ -1,0 +1,140 @@
+
+<!DOCTYPE html>
+<html lang="gu">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>પુલ પાર ગેમ</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#091525;color:white;font-family:Arial;text-align:center}
+h2{color:#ffda72;margin:12px}
+#timer{font-size:26px;color:#ffdc76;margin:10px}
+#scene{height:300px;position:relative;overflow:hidden;background:linear-gradient(#14243b 65%,#246080 65%)}
+.bank{position:absolute;top:120px;width:17%;height:180px;background:#31533e;z-index:2}
+.left{left:0}.right{right:0}
+#bridge{position:absolute;top:110px;left:15%;width:70%;height:70px;border-bottom:9px dashed #c39a62;border-radius:0 0 50% 50%;z-index:3}
+#water{position:absolute;bottom:0;width:100%;height:100px;background:repeating-linear-gradient(170deg,#216184 0px,#216184 16px,#3683a3 21px,#216184 28px);animation:wave 2s linear infinite}
+@keyframes wave{50%{background-position:30px 15px}}
+.person{position:absolute;top:90px;z-index:5;font-size:30px;transition:left 1.4s ease,top 1.4s ease}
+#torch{position:absolute;top:170px;left:4%;z-index:6;font-size:25px;transition:left 1.4s}
+#people{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin:12px}
+.pick{padding:13px 4px;background:#20334a;color:white;border:2px solid #536980;border-radius:12px;font-size:16px}
+.selected{border-color:#ffdf62;background:#4b5032}
+button{cursor:pointer}
+.action{width:94%;padding:14px;margin:5px;background:#19cfa4;border:0;border-radius:12px;font-size:19px;font-weight:bold}
+#msg{padding:10px;color:#ffdf88;min-height:55px}
+</style>
+</head>
+<body>
+<h2>🌉 પુલ પાર ગેમ</h2>
+<div>17 મિનિટમાં બધાને પાર કરાવો!</div>
+<div id="timer">⏱️ 0 / 17 મિનિટ</div>
+<div id="scene">
+<div id="water"></div>
+<div class="bank left"></div>
+<div class="bank right"></div>
+<div id="bridge"></div>
+<div id="torch">🔦</div>
+<div id="characters"></div>
+</div>
+<div id="people"></div>
+<button class="action" onclick="cross()">🌉 પુલ પાર કરો</button>
+<button class="action" onclick="restart()">🔄 ફરી રમો</button>
+<div id="msg">એક અથવા બે પાત્ર પસંદ કરો.</div>
+<script>
+const names=["રાજુ","મા","પપ્પા","દાદી"];
+const faces=["👦","👩","👨","👵"];
+const mins=[1,2,5,10];
+let sides=[0,0,0,0],torch=0,time=0,chosen=[],busy=false,over=false;
+const el=id=>document.getElementById(id);
+
+function voice(s){
+try{
+if(window.AndroidVoice)AndroidVoice.speak(s);
+else if("speechSynthesis" in window){
+speechSynthesis.cancel();
+let u=new SpeechSynthesisUtterance(s);
+u.lang="gu-IN";
+speechSynthesis.speak(u);
+}
+}catch(e){}
+}
+function draw(){
+el("timer").textContent="⏱️ "+time+" / 17 મિનિટ";
+el("people").innerHTML=names.map((n,i)=>
+'<button class="pick '+(chosen.includes(i)?"selected":"")+'" onclick="pick('+i+')">'+faces[i]+' '+n+' — '+mins[i]+' મિનિટ '+(sides[i]?"✓":"")+'</button>'
+).join("");
+el("characters").innerHTML=faces.map((f,i)=>
+'<div class="person" style="left:'+(sides[i]?79+i*4:2+i*4)+'%">'+f+'</div>'
+).join("");
+el("torch").style.left=torch?"90%":"4%";
+}
+function pick(i){
+if(busy||over)return;
+if(sides[i]!==torch){
+el("msg").textContent="આ પાત્ર બીજી બાજુ છે.";
+return;
+}
+if(chosen.includes(i))chosen=chosen.filter(x=>x!==i);
+else if(chosen.length<2)chosen.push(i);
+else{
+el("msg").textContent="માત્ર બે પાત્ર પસંદ કરો.";
+return;
+}
+draw();
+}
+function cross(){
+if(busy||over)return;
+if(!chosen.length){
+el("msg").textContent="પહેલાં પાત્ર પસંદ કરો.";
+return;
+}
+let group=[...chosen],cost=Math.max(...group.map(i=>mins[i]));
+if(time+cost>17){
+over=true;
+el("msg").textContent="❌ સમય પૂરો થયો!";
+voice("સમય પૂરો થયો.");
+return;
+}
+busy=true;
+let dest=1-torch;
+el("msg").textContent="પાત્રો પુલ પાર કરી રહ્યા છે...";
+group.forEach(i=>{
+let p=el("characters").children[i];
+p.style.left=(dest?79+i*4:2+i*4)+"%";
+p.style.top="145px";
+});
+el("torch").style.left=dest?"90%":"4%";
+setTimeout(()=>{
+group.forEach(i=>sides[i]=dest);
+torch=dest;
+time+=cost;
+chosen=[];
+busy=false;
+draw();
+if(sides.every(x=>x===1)){
+over=true;
+el("msg").textContent="🎉 જીત! "+time+" મિનિટમાં બધા પાર થયા!";
+voice("અભિનંદન! તમે ગેમ જીતી ગયા.");
+}else if(time===17){
+over=true;
+el("msg").textContent="❌ સમય પૂરો થયો!";
+voice("સમય પૂરો થયો.");
+}else{
+el("msg").textContent=cost+" મિનિટ લાગી. આગળની ચાલ પસંદ કરો.";
+voice(cost+" મિનિટ લાગી.");
+}
+},1400);
+}
+function restart(){
+sides=[0,0,0,0];
+torch=0;time=0;chosen=[];busy=false;over=false;
+draw();
+el("msg").textContent="એક અથવા બે પાત્ર પસંદ કરો.";
+voice("પુલ પાર ગેમમાં સ્વાગત છે.");
+}
+draw();
+</script>
+</body>
+</html>
