@@ -2,33 +2,33 @@ package com.example.pulpargame
 
 import android.app.Activity
 import android.os.Bundle
+import android.speech.tts.TextToSpeech
+import android.webkit.JavascriptInterface
 import android.webkit.WebView
 import android.webkit.WebViewClient
-import android.webkit.JavascriptInterface
-import android.speech.tts.TextToSpeech
 import java.util.Locale
 
-class MainActivity : Activity(), TextToSpeech.OnInitListener {
+class MainActivity : Activity() {
     private lateinit var web: WebView
     private var tts: TextToSpeech? = null
     private var ready = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        tts = TextToSpeech(this, this)
+
         web = WebView(this)
+        setContentView(web)
         web.settings.javaScriptEnabled = true
         web.webViewClient = WebViewClient()
         web.addJavascriptInterface(Voice(), "AndroidVoice")
-        setContentView(web)
         web.loadUrl("file:///android_asset/index.html")
-    }
 
-    override fun onInit(status: Int) {
-        if (status == TextToSpeech.SUCCESS) {
-            val result = tts?.setLanguage(Locale("gu", "IN"))
-            ready = result != TextToSpeech.LANG_MISSING_DATA &&
-                    result != TextToSpeech.LANG_NOT_SUPPORTED
+        tts = TextToSpeech(applicationContext) { status ->
+            if (status == TextToSpeech.SUCCESS) {
+                val result = tts?.setLanguage(Locale("gu", "IN"))
+                ready = result != TextToSpeech.LANG_MISSING_DATA &&
+                        result != TextToSpeech.LANG_NOT_SUPPORTED
+            }
         }
     }
 
